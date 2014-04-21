@@ -1,0 +1,2 @@
+FILE:  a01.xml
+['fulton', 'county', 'grand', 'jury', 'said', 'friday', 'investigation', 'recent', 'primary', 'election', 'produced', 'evidence', 'irregularities', 'took', 'place']
