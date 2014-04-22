@@ -3,6 +3,7 @@ import wordMethods
 import operator
 import collections
 import expectionFilesToDB as e
+from stemming.porter2 import stem
 def insertIntoDB(word_id,lemma,ss_type,synset_offset,sense_number,contextwords):
 	conn_string = "host='localhost' dbname='complete_wordsDB' user='postgres' password='dnana'"
 
@@ -33,16 +34,24 @@ def getAllWordsFromDB():
 	conn.commit()
 	conn.close()
 
-
-def checkWordinWordVector(word,wordVector):
+#word vector and inputwords are converted to lower case 
+def checkWordinWordVector(word,wordVector,stemmedWordlist):
 	if word in wordVector:
 		return True
 		#print 'Hit: ',word
 	else:
-		return False
+		stemWord = stem(word)
+		if stemWord in wordVector:
+			return True
+		else:
+			if stemWord in stemmedWordlist:
+				return True
+			else:
+				return False
+
 	
 	
-def insertFrequencyInDB(inputword,pos,wordVector):
+def insertFrequencyInDB(inputword,pos,wordVector,stemmedWordlist):
 	conn_string = "host='localhost' dbname='englishWords' user='postgres' password='Ashish123'"
 	synsetid_contextwords={}
 	wordMapContextHit ={}
@@ -61,14 +70,14 @@ def insertFrequencyInDB(inputword,pos,wordVector):
 			#print "ExceptionList: "+inputword
 			cursor.execute('select synset_offset,contextwords from wordlistdb where word=%s and ss_type=%s',[inputword,pos])
 			rows=cursor.fetchall()
-	'''
+	
 	for row in rows:
 		synset_offset = row[0]
 		contextwords = row[1]
 		wordMapContextHit[synset_offset]=0
 		contextwords = contextwords[1:-1].split(',')
 		for word in contextwords:
-			hit =checkWordinWordVector(word,wordVector)
+			hit =checkWordinWordVector(word.lower(),wordVector,stemmedWordlist)
 			if(hit):
 				#print 'Hit Offset: ',synset_offset
 				wordMapContextHit[synset_offset]=wordMapContextHit[synset_offset]+1
@@ -83,7 +92,7 @@ def insertFrequencyInDB(inputword,pos,wordVector):
 				contextWordsRow = contextWordsRow[1:-1].split(',')
 				countHits=0
 				for wordlevel1 in contextWordsRow:
-					hitlevel1 = checkWordinWordVector(wordlevel1,wordVector)
+					hitlevel1 = checkWordinWordVector(wordlevel1.lower(),wordVector,stemmedWordlist)
 					if(hitlevel1):
 						countHits = countHits+1
 				if(countHits > maxHit1level):
@@ -94,6 +103,7 @@ def insertFrequencyInDB(inputword,pos,wordVector):
 	if(wordMapContextHit!={}):
 		targetSynsetId=max(wordMapContextHit.iteritems(), key=operator.itemgetter(1))[0]
 		#targetSynsetId=1
+		frequency = 0;
 		print 'target synsetId: ',targetSynsetId
 		cursor.execute('select frequency from wordlistdb where synset_offset=%s and word=%s and ss_type=%s',[targetSynsetId,inputword,pos])
 		frequencyRows=cursor.fetchall()
@@ -105,7 +115,7 @@ def insertFrequencyInDB(inputword,pos,wordVector):
 		cursor.execute('UPDATE wordlistdb set frequency=%s where synset_offset=%s and word=%s and ss_type=%s',[frequency,targetSynsetId,inputword,pos])
 	conn.commit()
 	#conn.close()
-	'''
+	
 
 def lemmatization(inputword,pos,cursor):
 	ending=""
@@ -144,10 +154,6 @@ def lemmatization(inputword,pos,cursor):
 	return rows
 
 
-
-
-
-
 def nounRules(nRules):
 	nRules["s"] = [""]
 	nRules["ses"] = ["s"]
@@ -172,8 +178,11 @@ def adjRules(aRules):
 
 
 
-
-
+def stemmingWordList(inflectedWordlist):
+	stemmedWordlist = []
+	for word in inflectedWordlist:
+		stemmedWordlist.append(stem(word))
+	return stemmedWordlist
 
 
 

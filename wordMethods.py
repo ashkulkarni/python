@@ -5,6 +5,7 @@ import re
 from bs4 import BeautifulSoup
 import db
 import psycopg2
+from stemming.porter2 import stem
 
 def getListOfSentenceOfWord(list_of_sentence,word,list_file_names):
 	#dict_word_sentence[word]=[]
@@ -68,6 +69,7 @@ def parseCorpus():
 		for ptag in paraList:
 			if(ptag.findAll('s')!=[]):
 				wordVector=[]
+				stemmedWordlist=[]
 				#wordVector = str(ptag.get_text()).strip().split()
 				words = []
 				words = ptag.findAll('w')
@@ -87,7 +89,7 @@ def parseCorpus():
 						flag = False
 					if (flag)and(inputword not in stopwords):
 						wordVector.append(inputword)
-				print wordVector
+						stemmedWordlist.append(stem(inputword))
 					
 
 				for wtag in words:
@@ -105,7 +107,7 @@ def parseCorpus():
 					else:
 						flag = False
 					if (flag)and(inputword not in stopwords):
-						db.insertFrequencyInDB(inputword,pos,wordVector)
+						db.insertFrequencyInDB(inputword,pos,wordVector,stemmedWordlist)
 		break					
 
 
